@@ -14,8 +14,12 @@ Process::Process(char const* processName)
 
 Process::~Process(void)
 {
-	for (LPVOID& address : m_allocs)
-		FreeMemory(address);
+	std::vector<LPVOID>::iterator iter = m_allocs.begin();
+	while (iter != m_allocs.end())
+	{
+		FreeMemory(*iter);
+		iter = m_allocs.begin();
+	}
 
 	if (m_handle != INVALID_HANDLE_VALUE && m_handle != NULL)
 		CloseHandle(m_handle);
@@ -36,11 +40,41 @@ void Process::FreeMemory(LPVOID address)
 	std::vector<LPVOID>::iterator position = std::find(m_allocs.begin(), m_allocs.end(), address);
 	if (position == m_allocs.end())
 		throw std::runtime_error("Process::FreeMemory - Allocation on this address not found.");
+	m_allocs.erase(position);
 
 	bool success = VirtualFreeEx(m_handle, address, 0, MEM_RELEASE);
 
 	if (!success)
 		throw std::runtime_error("Process::FreeMemory - Freeing memory failed.");
+}
+void Process::WriteMemory(LPVOID address, LPCVOID data, size_t size) const
+{
+	SIZE_T bytesWritten = 0;
+	bool success = WriteProcessMemory(m_handle, address, data, size, &bytesWritten);
+	if (!success || bytesWritten != size)
+		throw std::runtime_error("Process::WriteMemory - Writing memory failed.");
+}
+void Process::ReadMemory(LPCVOID address, LPVOID buffer, size_t size) const
+{
+	SIZE_T bytesRead = 0;
+	bool success = ReadProcessMemory(m_handle, address, buffer, size, &bytesRead);
+	if (!success || bytesRead != size)
+		throw std::runtime_error("Process::ReadMemory - Reading memory failed.");
+}
+DWORD Process::CallFunction(LPCVOID address, LPVOID arg)
+{
+	HANDLE thread = CreateRemoteThread(m_handle, 0, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(address), arg, 0, 0);
+	if (!thread)
+		throw std::runtime_error("Process::CallFunction - Error creating a thread.");
+	DWORD threadState = WaitForSingleObject(thread, 5000);
+	if (threadState != WAIT_OBJECT_0)
+		throw std::runtime_error("Process::CallFunction - Error executing the thread function - timed out.");
+
+	DWORD exitCode = 0;
+	GetExitCodeThread(thread, &exitCode);
+	if (!exitCode)
+		throw std::runtime_error("Process::CallFunction - Error executing the thread function - exit code equals 0.");
+	return exitCode;
 }
 Process::operator HANDLE(void) const
 {

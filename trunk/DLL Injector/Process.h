@@ -14,6 +14,11 @@ public:
 	LPVOID AllocMemory(size_t size);
 	void FreeMemory(LPVOID address);
 
+	void WriteMemory(LPVOID address, LPCVOID buffer, size_t size) const;
+	void ReadMemory(LPCVOID address, LPVOID buffer, size_t size) const;
+	
+	DWORD CallFunction(LPCVOID address, LPVOID arg);
+
 	HANDLE GetHandle(void) const;
 	static DWORD	GetProcessIDByName(char const* processName);
 private:
