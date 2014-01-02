@@ -6,9 +6,8 @@ Injection::Injection(char const* libraryName, char const* processName)
 	m_libPath(libraryName),
 	m_procName(processName)
 {
-	
-}
 
+}
 
 Injection::~Injection(void)
 {
@@ -18,6 +17,11 @@ Injection::~Injection(void)
 
 void Injection::Inject(void)
 {
+	if (GetFileAttributesA(m_libPath.c_str()) == INVALID_FILE_ATTRIBUTES)
+		throw std::runtime_error("Injection::Inject - Library not found.");
+	if (!Process::GetProcessIDByName(m_procName.c_str()))
+		throw std::runtime_error("Injection::Inject - Process not running.");
+
 	FARPROC loadLibAddress = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
 
 	Process process(m_procName.c_str());
@@ -29,6 +33,10 @@ void Injection::Inject(void)
 }
 void Injection::Eject(void)
 {
+	if (!m_injected)
+		throw std::runtime_error("Injection::Eject - Library is not injected.");
+	
+
 	FARPROC freeLibAddress = GetProcAddress(GetModuleHandle("kernel32.dll"), "FreeLibrary");
 
 	Process process(m_procName.c_str());
