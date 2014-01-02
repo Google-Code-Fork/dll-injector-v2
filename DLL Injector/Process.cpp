@@ -5,13 +5,20 @@ Process::Process(char const* processName)
 	m_handle(INVALID_HANDLE_VALUE)
 {
 	DWORD procID = Process::GetProcessIDByName(processName);
-	m_handle = OpenProcess(PROCESS_ALL_ACCESS, false, procID);
+	m_handle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
 
 	if (m_handle == NULL)
 		throw std::runtime_error("Process::Process - Could not open the process");
 }
-
-
+Process::Process(Process& rhs)
+	:
+	m_handle(INVALID_HANDLE_VALUE),
+	m_allocs(rhs.m_allocs)
+{
+	DWORD procID = GetProcessId(rhs.m_handle);
+	m_handle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
+	rhs.m_allocs.clear(); // We transfer the mem allocs to the new object
+}
 Process::~Process(void)
 {
 	std::vector<LPVOID>::iterator iter = m_allocs.begin();
@@ -23,6 +30,19 @@ Process::~Process(void)
 
 	if (m_handle != INVALID_HANDLE_VALUE && m_handle != NULL)
 		CloseHandle(m_handle);
+}
+Process& Process::operator=(Process& rhs)
+{
+	DWORD procID = GetProcessId(rhs.m_handle);
+	m_handle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
+	m_allocs = rhs.m_allocs;
+	
+	rhs.m_allocs.clear();  // We transfer the mem allocs to the new object
+	return *this;
+}
+Process::operator HANDLE(void) const
+{
+	return m_handle;
 }
 
 LPVOID Process::AllocMemory(size_t size)
@@ -75,10 +95,6 @@ DWORD Process::CallFunction(LPCVOID address, LPVOID arg)
 	if (!exitCode)
 		throw std::runtime_error("Process::CallFunction - Error executing the thread function - exit code equals 0.");
 	return exitCode;
-}
-Process::operator HANDLE(void) const
-{
-	return m_handle;
 }
 
 HANDLE Process::GetHandle(void) const

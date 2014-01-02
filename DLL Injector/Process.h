@@ -7,8 +7,10 @@ class Process
 {
 public:
 	Process(char const* processName);
+	Process(Process& rhs); // allocs being transfered to the new object
 	~Process(void);
 
+	Process& operator=(Process& rhs); // allocs being transfered to the new object
 	operator HANDLE(void) const;
 
 	LPVOID AllocMemory(size_t size);

@@ -7,9 +7,11 @@ class Injection
 {
 public:
 	Injection(char const* libraryPath, char const* processName);
-
+	Injection(Injection const& rhs) = delete;
 	~Injection(void);
-	
+
+	Injection& operator=(Injection const& rhs) = delete;
+
 	void Inject(void);
 	void Eject(void);
 

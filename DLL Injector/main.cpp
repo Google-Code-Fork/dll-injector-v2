@@ -1,11 +1,14 @@
 #include <iostream>
 #include "Injection.h"
-
+#include "Process.h"
 int main(int argc, char* argv[])
 {
-	Injection inj("c:/DLLAPP.dll", "chrome.exe");
+	std::cerr << "NIGGER";
+	std::cin.get();
 	try
 	{
+		Injection inj("c:/DLLAPP.dll", "chrome.exe");
+
 		inj.Inject();
 		inj.Eject();
 	}
