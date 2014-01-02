@@ -94,7 +94,7 @@ DWORD Process::CallFunction(LPCVOID address, LPVOID arg)
 	GetExitCodeThread(thread, &exitCode);
 	if (!exitCode)
 		throw std::runtime_error("Process::CallFunction - Error executing the thread function - exit code equals 0.");
-	return exitCode;
+	return exitCode; 
 }
 
 HANDLE Process::GetHandle(void) const
