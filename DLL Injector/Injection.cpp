@@ -31,11 +31,11 @@ void Injection::Inject(void)
 	process.FreeMemory(alloc);
 	m_injected = true;
 }
+
 void Injection::Eject(void)
 {
 	if (!m_injected)
 		throw std::runtime_error("Injection::Eject - Library is not injected.");
-	
 
 	FARPROC freeLibAddress = GetProcAddress(GetModuleHandle("kernel32.dll"), "FreeLibrary");
 
