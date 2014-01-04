@@ -8,14 +8,17 @@ int main(int argc, char* argv[])
 	try
 
 	{
-		PEFile f("c:/MalwareDLL.dll");
-		f.AddSection(".ngr", 5000);
+		PEFile f("c:/FrequencyTester.exe");
+		char const* str = "TEST!!!";
+		f.AppendLastSection(str, strlen(str) + 1);
+		f.SaveAs("c:/FrequencyTester - modified.exe");
 	}
 	catch (std::runtime_error& e)
 	{
 		std::cout << e.what();
+		std::cin.get();
 	}
-	std::cin.get();
+	return 0;
 	char const* processName = NULL;
 	char const* libraryPath = NULL;
 

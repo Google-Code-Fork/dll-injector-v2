@@ -8,11 +8,16 @@ class PEFile
 {
 public:
 	PEFile(char const* filePath);
+	PEFile(PEFile& rhs) = delete;
 	~PEFile(void);
 
-	void SaveFile(void) const;
+	PEFile& operator=(PEFile const& rhs) = delete;
+
+	void Save(void) const;
+	void SaveAs(char const* filePath) const;
 
 	void ExpandLastSection(size_t size);
+	void AppendLastSection(char const* data, size_t size);
 
 	size_t GetFileSize(void) const;
 	size_t GetNumberOfSections(void) const;

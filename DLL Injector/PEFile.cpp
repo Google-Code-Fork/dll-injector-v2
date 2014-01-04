@@ -14,22 +14,24 @@ PEFile::PEFile(char const* filePath)
 	LoadFile();
 	UpdateHeaderPointers();
 }
-
-
 PEFile::~PEFile(void)
 {
 	if (m_fileBuffer)
 		delete[] m_fileBuffer;
 
 }
-void PEFile::SaveFile(void) const
+void PEFile::Save(void) const
 {
-	std::ofstream file(m_filePath, std::ofstream::binary);
+	SaveAs(m_filePath.c_str());
+}
+void PEFile::SaveAs(char const* filePath) const
+{
+	std::ofstream file(filePath, std::ofstream::binary);
 	if (!file.good())
-		throw std::runtime_error("PEFile::SaveFile - Error opening a file for writing.");
+		throw std::runtime_error("PEFile::SaveAs - Error opening a file for writing.");
 	file.write(m_fileBuffer, m_fileSize);
 	if (!file.good())
-		throw std::runtime_error("PEFile::SaveFile - Error writing to a file.");
+		throw std::runtime_error("PEFile::SaveAs - Error writing to a file.");
 }
 void PEFile::LoadFile(void)
 {
@@ -53,15 +55,29 @@ void PEFile::LoadFile(void)
 }
 void PEFile::ExpandLastSection(size_t size)
 {
-	size_t alignedSize = AlignSize(size, m_ntHeaders->OptionalHeader.SectionAlignment);
-	if (m_fileSize + alignedSize > m_bufferSize)
-		ReallocateBuffer((m_fileSize + alignedSize) * 2);
+	IMAGE_SECTION_HEADER* lastSection = m_firstSectionHeader + m_ntHeaders->FileHeader.NumberOfSections - 1;
+	
+	if (m_fileSize + size > m_bufferSize)
+		ReallocateBuffer((m_fileSize + size) * 2);
 
+	size_t newVirtualSize = lastSection->Misc.VirtualSize + size;
+	if (newVirtualSize > lastSection->SizeOfRawData)
+	{
+		size_t alignedSize = AlignSize(lastSection->Misc.VirtualSize + size, m_ntHeaders->OptionalHeader.FileAlignment);
+		lastSection->SizeOfRawData = alignedSize;
 
+		m_fileSize += AlignSize(alignedSize, m_ntHeaders->OptionalHeader.SectionAlignment);
+	}
+	lastSection->Misc.VirtualSize += size;
+	m_ntHeaders->OptionalHeader.SizeOfImage = lastSection->VirtualAddress + lastSection->Misc.VirtualSize;
+}
+void PEFile::AppendLastSection(char const* data, size_t size)
+{
 	IMAGE_SECTION_HEADER* lastSection = m_firstSectionHeader + m_ntHeaders->FileHeader.NumberOfSections - 1;
 
-	lastSection->SizeOfRawData = alignedSize;
-	lastSection->Misc.VirtualSize = alignedSize;
+	char* dataPointer = m_fileBuffer + lastSection->PointerToRawData + lastSection->Misc.VirtualSize;
+	memcpy(dataPointer, data, size);
+	ExpandLastSection(size);
 }
 void PEFile::ReallocateBuffer(size_t size)
 {
