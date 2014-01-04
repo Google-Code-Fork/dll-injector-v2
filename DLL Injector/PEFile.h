@@ -5,15 +5,27 @@
 class PEFile
 {
 public:
-	PEFile(char const* fileName);
+	PEFile(char const* filePath);
 	~PEFile(void);
 
-private:
-	char*				m_fileData;
-	size_t				m_fileSize;
+	void SaveFile(void) const;
 
-	IMAGE_DOS_HEADER*	m_dosHeader;
-	IMAGE_NT_HEADERS*	m_ntHeaders;
+	size_t GetFileSize(void) const;
+	size_t GetNumberOfSections(void) const;
+
+	void AddSection(char const* name, size_t size);
+	void RemoveSection(int index);
+	void RemoveSection(char const* name);
+private:
+	void LoadFile(void);
+
+	char const*				m_filePath;
+	char*					m_fileData;
+	size_t					m_fileSize;
+
+	IMAGE_DOS_HEADER*		m_dosHeader;
+	IMAGE_NT_HEADERS*		m_ntHeaders;
+	IMAGE_SECTION_HEADER*	m_firstSectionHeader;
 };
 
 
