@@ -1,10 +1,21 @@
 #include <iostream>
 #include "Injection.h"
 #include "Process.h"
-#include <fstream>
+#include "PEFile.h"
 
 int main(int argc, char* argv[])
 {
+	try
+
+	{
+		PEFile f("c:/DLLAPP.dll");
+		f.SaveFile();
+	}
+	catch (std::runtime_error& e)
+	{
+		std::cout << e.what();
+	}
+	std::cin.get();
 	char const* processName = NULL;
 	char const* libraryPath = NULL;
 
