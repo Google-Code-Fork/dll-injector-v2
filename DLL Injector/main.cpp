@@ -8,8 +8,8 @@ int main(int argc, char* argv[])
 	try
 
 	{
-		PEFile f("c:/DLLAPP.dll");
-		f.SaveFile();
+		PEFile f("c:/MalwareDLL.dll");
+		f.AddSection(".ngr", 5000);
 	}
 	catch (std::runtime_error& e)
 	{
