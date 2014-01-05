@@ -3,7 +3,7 @@
 
 #include <Windows.h>
 #include <string>
-
+#include <vector>
 class PEFile
 {
 public:
@@ -12,12 +12,13 @@ public:
 	~PEFile(void);
 
 	PEFile& operator=(PEFile const& rhs);
-
+	
 	void Save(void) const;
 	void SaveAs(char const* filePath) const;
 
 
-	/* Injects code into the PE File and redirects the entry point, so the code flow starts there and eventually redirects it back to the original entry point
+	/* 
+	Injects code into the PE File and redirects the entry point, so the code flow starts there and eventually redirects it back to the original entry point
 
 	code = pointer to code of the infection
 	size = size of the infection's code
@@ -30,7 +31,29 @@ public:
 	size_t GetFileSize(void) const;
 	size_t GetNumberOfSections(void) const;
 
+	class Tools
+	{
+	public:
+		/*
+		This will only work for simple-enough functions, that have one basic ret instruction.
+		*/
+		static size_t GetFunctionSize(void const* function);
+		template <typename T> static bool Contains(T const& value, T const* array, size_t size)
+		{
+			for (int i = 0; i < size; i++)
+			{
+				if (array[i] == value)
+					return true;
+			}
+			return false;
+		}
+	private:
+		Tools(void);
+		~Tools(void);
 
+		static const char OPCODE_RET = 0xC3;
+
+	};
 private:
 	static size_t AlignSize(size_t size, size_t alingment);
 	void LoadFile(void);

@@ -1,33 +1,10 @@
 #include <iostream>
 #include "Injection.h"
 #include "Process.h"
-#include "PEFile.h"
 
-__declspec(naked) void TestStub()
-{
-	__asm
-	{
-		push 0x12345678
-		ret
-	}
-}
 
 int main(int argc, char* argv[])
 {
-	try
-
-	{
-		PEFile f("c:/FrequencyTester.exe");
-
-		f.Infect(reinterpret_cast<char const*>(&TestStub), 6, 1);
-		f.SaveAs("c:/FrequencyTester - modified.exe");
-	}
-	catch (std::runtime_error& e)
-	{
-		std::cout << e.what();
-		std::cin.get();
-	}
-	return 0;
 	char const* processName = NULL;
 	char const* libraryPath = NULL;
 
@@ -46,7 +23,11 @@ int main(int argc, char* argv[])
 			Injection inj(libraryPath, processName);
 
 			inj.Inject();
+			std::cout << "Library has been succesfuly injected into the process" << std::endl
+				      << "Press any key to eject the library..." << std::endl;
+			std::cin.get();
 			inj.Eject();
+			std::cout << "Library has been ejected" << std::endl;
 		}
 		catch (std::runtime_error& e)
 		{
