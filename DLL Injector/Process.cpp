@@ -33,11 +33,17 @@ Process::~Process(void)
 }
 Process& Process::operator=(Process& rhs)
 {
-	DWORD procID = GetProcessId(rhs.m_handle);
-	m_handle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
-	m_allocs = rhs.m_allocs;
-	
-	rhs.m_allocs.clear();  // We transfer the mem allocs to the new object
+	if (this != &rhs)
+	{
+		if (m_handle != INVALID_HANDLE_VALUE && m_handle != NULL)
+			CloseHandle(m_handle);
+
+		DWORD procID = GetProcessId(rhs.m_handle);
+		m_handle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
+		m_allocs = rhs.m_allocs;
+
+		rhs.m_allocs.clear();  // We transfer the mem allocs to the new object
+	}
 	return *this;
 }
 Process::operator HANDLE(void) const
