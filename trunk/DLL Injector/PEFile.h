@@ -8,15 +8,23 @@ class PEFile
 {
 public:
 	PEFile(char const* filePath);
-	PEFile(PEFile& rhs) = delete;
+	PEFile(PEFile const& rhs);
 	~PEFile(void);
 
-	PEFile& operator=(PEFile const& rhs) = delete;
+	PEFile& operator=(PEFile const& rhs);
 
 	void Save(void) const;
 	void SaveAs(char const* filePath) const;
 
-	void Infect(char const* code, size_t size, DWORD newEntryPointOffset, DWORD originalEntryPointOffset); 
+
+	/* Injects code into the PE File and redirects the entry point, so the code flow starts there and eventually redirects it back to the original entry point
+
+	code = pointer to code of the infection
+	size = size of the infection's code
+	originalEntryPointOffset = offset, where the addr to the original entry point will be copied, so code can jump / ret back to the original code flow
+	newEntryPointOffset = offset to the entry point in the code (  code + offset = new entry point), incase we inject more functions and entry point is not on the top 
+	*/
+	void Infect(char const* code, size_t size, DWORD originalEntryPointOffset, DWORD newEntryPointOffset = 0);
 
 
 	size_t GetFileSize(void) const;
@@ -29,7 +37,6 @@ private:
 	void ReallocateBuffer(size_t size);
 	void UpdateHeaderPointers(void);
 	void ExpandLastSection(size_t size);
-	//void AppendLastSection(char const* data, size_t size);
 
 
 	std::string				m_filePath;
