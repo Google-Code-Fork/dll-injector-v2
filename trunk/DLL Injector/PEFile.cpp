@@ -36,15 +36,18 @@ PEFile::~PEFile(void)
 }
 PEFile& PEFile::operator=(PEFile const& rhs)
 {
-	m_filePath = rhs.m_filePath;
-	m_fileSize = rhs.m_fileSize;
-	m_bufferSize = rhs.m_bufferSize;
+	if (this != &rhs)
+	{
+		m_filePath = rhs.m_filePath;
+		m_fileSize = rhs.m_fileSize;
+		m_bufferSize = rhs.m_bufferSize;
 
-	if (m_fileBuffer)
-		delete[] m_fileBuffer;
-	m_fileBuffer = new char[m_bufferSize];
-	memcpy(m_fileBuffer, rhs.m_fileBuffer, m_fileSize);
-	UpdateHeaderPointers();
+		if (m_fileBuffer)
+			delete[] m_fileBuffer;
+		m_fileBuffer = new char[m_bufferSize];
+		memcpy(m_fileBuffer, rhs.m_fileBuffer, m_fileSize);
+		UpdateHeaderPointers();
+	}
 	return *this;
 }
 void PEFile::Save(void) const
