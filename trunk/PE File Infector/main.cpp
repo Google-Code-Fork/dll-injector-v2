@@ -17,7 +17,8 @@ int main(int argc, char* argv[])
 	try
 	{
 		PEFile f("c:/FrequencyTester.exe");
-		f.Infect(reinterpret_cast<char const*>(&TestStub), 6, 1);
+		f.InfectNewSection(".test", reinterpret_cast<char const*>(&TestStub), 6, 1);
+		f.InfectNewSection(".test2", reinterpret_cast<char const*>(&TestStub), 6, 1);
 		f.SaveAs("c:/FrequencyTester - modified.exe");
 		std::cout << "File has been succesfuly infected! " << std::endl;
 	}
