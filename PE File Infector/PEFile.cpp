@@ -159,3 +159,12 @@ size_t PEFile::AlignSize(size_t size, size_t alignment)
 	}
 	return alignedSize;
 }
+
+
+
+size_t PEFile::Tools::GetFunctionSize(void const* function)
+{
+	size_t funcSize = 0;
+	while (reinterpret_cast<char const*>(function)[funcSize++] != OPCODE_RET);
+	return funcSize;
+}
