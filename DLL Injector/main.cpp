@@ -3,7 +3,7 @@
 #include "Process.h"
 #include "PEFile.h"
 
-__declspec(naked) void Stub()
+__declspec(naked) void TestStub()
 {
 	__asm
 	{
@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 	{
 		PEFile f("c:/FrequencyTester.exe");
 
-		f.Infect(reinterpret_cast<char*>(&Stub), 6, 0, 1);
+		f.Infect(reinterpret_cast<char const*>(&TestStub), 6, 1);
 		f.SaveAs("c:/FrequencyTester - modified.exe");
 	}
 	catch (std::runtime_error& e)

